@@ -224,9 +224,153 @@ These exercises will reiterate what you learned in the "Mapping data with R" tut
 
   1. Add the `Starbucks` locations to a world map. Add an aesthetic to the world map that sets the color of the points according to the ownership type. What, if anything, can you deduce from this visualization?  
 
+
+```r
+world_map <- get_stamenmap(
+  bbox = c(left = -180, bottom = -57, right = 179, top = 82.1),
+  maptype = "watercolor",
+  zoom = 2)
+```
+
+```
+## Source : http://tile.stamen.com/watercolor/2/0/0.jpg
+```
+
+```
+## Source : http://tile.stamen.com/watercolor/2/1/0.jpg
+```
+
+```
+## Source : http://tile.stamen.com/watercolor/2/2/0.jpg
+```
+
+```
+## Source : http://tile.stamen.com/watercolor/2/3/0.jpg
+```
+
+```
+## Source : http://tile.stamen.com/watercolor/2/0/1.jpg
+```
+
+```
+## Source : http://tile.stamen.com/watercolor/2/1/1.jpg
+```
+
+```
+## Source : http://tile.stamen.com/watercolor/2/2/1.jpg
+```
+
+```
+## Source : http://tile.stamen.com/watercolor/2/3/1.jpg
+```
+
+```
+## Source : http://tile.stamen.com/watercolor/2/0/2.jpg
+```
+
+```
+## Source : http://tile.stamen.com/watercolor/2/1/2.jpg
+```
+
+```
+## Source : http://tile.stamen.com/watercolor/2/2/2.jpg
+```
+
+```
+## Source : http://tile.stamen.com/watercolor/2/3/2.jpg
+```
+
+```r
+ggmap(world_map) + 
+  geom_point(data = Starbucks,
+             aes(x = Longitude, y = Latitude, color = Starbucks$`Ownership Type`),
+             size = 0.1,
+             alpha = 0.3) +
+  theme_map() +
+  labs(color = "Owernship Type")
+```
+
+```
+## Warning: Removed 1 rows containing missing values (geom_point).
+```
+
+![](04_exercises_real_files/figure-html/unnamed-chunk-1-1.png)<!-- -->
+
+> From this visualization, we can see that in North America, most Starbucks locations are either Compamy Owned or Licenses, where as in the UK and Europe there are much more Joint-Ventures and Franchises.
+
   2. Construct a new map of Starbucks locations in the Twin Cities metro area (approximately the 5 county metro area).  
 
+
+```r
+Starbucks_MN <- Starbucks %>% filter(`Country` == "US" & `State/Province` == "MN")
+
+TC_metro <- get_stamenmap(
+  bbox = c(left = -94.0741, bottom = 44.4194, right = -92.3932, top = 45.4788),
+  maptype = "terrain",
+  zoom = 9)
+```
+
+```
+## Source : http://tile.stamen.com/terrain/9/122/183.png
+```
+
+```
+## Source : http://tile.stamen.com/terrain/9/123/183.png
+```
+
+```
+## Source : http://tile.stamen.com/terrain/9/124/183.png
+```
+
+```
+## Source : http://tile.stamen.com/terrain/9/122/184.png
+```
+
+```
+## Source : http://tile.stamen.com/terrain/9/123/184.png
+```
+
+```
+## Source : http://tile.stamen.com/terrain/9/124/184.png
+```
+
+```
+## Source : http://tile.stamen.com/terrain/9/122/185.png
+```
+
+```
+## Source : http://tile.stamen.com/terrain/9/123/185.png
+```
+
+```
+## Source : http://tile.stamen.com/terrain/9/124/185.png
+```
+
+```r
+ggmap(TC_metro) +
+  geom_point(data = Starbucks_MN,
+             aes(x = Longitude, y = Latitude),
+             size = 0.3,
+             alpha = 0.3) +
+  expand_limits(x = Starbucks_MN$Longitude, y = Starbucks_MN$Latitude) +
+  annotate(geom = "point", x = -93.1717, y = 44.9371, label = "Macalester", size = 0.5, color = "red") +
+  theme_map()
+```
+
+```
+## Warning: Ignoring unknown parameters: label
+```
+
+```
+## Warning: Removed 30 rows containing missing values (geom_point).
+```
+
+![](04_exercises_real_files/figure-html/unnamed-chunk-2-1.png)<!-- -->
+
+
   3. In the Twin Cities plot, play with the zoom number. What does it do?  (just describe what it does - don't actually include more than one map).  
+
+> The zoom number adjusts the amount of area shown in the map. Increasing the zoom number increases the amoutn of detail shown.
 
   4. Try a couple different map types (see `get_stamenmap()` in help and look at `maptype`). Include a map with one of the other map types.  
 
@@ -239,9 +383,9 @@ The example I showed in the tutorial did not account for population of each stat
 
 ```r
 census_pop_est_2018 <- read_csv("https://www.dropbox.com/s/6txwv3b4ng7pepe/us_census_2018_state_pop_est.csv?dl=1") %>% 
-  separate(state, into = c("dot","state"), extra = "merge") %>% 
-  select(-dot) %>% 
-  mutate(state = str_to_lower(state))
+  separate(state, into = c("dot","state"), extra = "merge") %>% # separates the dot before the state names and puts the two values into different columns
+  select(-dot) %>%  # selects all variables/columns other than "dot"
+  mutate(state = str_to_lower(state)) # adds a new variable "state" wither lowercase string versions of the values in the "state" column
 ```
 
 ```
@@ -257,13 +401,35 @@ census_pop_est_2018 <- read_csv("https://www.dropbox.com/s/6txwv3b4ng7pepe/us_ce
 starbucks_with_2018_pop_est <-
   starbucks_us_by_state %>% 
   left_join(census_pop_est_2018,
-            by = c("state_name" = "state")) %>% 
-  mutate(starbucks_per_10000 = (n/est_pop_2018)*10000)
+            by = c("state_name" = "state")) %>% #joining the starbucks and census tables by the unique identifier of state
+  mutate(starbucks_per_10000 = (n/est_pop_2018)*10000) #adds a new variable that is a calculation finding the number of starbucks per 10000 people
 ```
 
   6. **`dplyr` review**: Look through the code above and describe what each line of code does.
 
   7. Create a choropleth map that shows the number of Starbucks per 10,000 people on a map of the US. Use a new fill color, add points for all Starbucks in the US (except Hawaii and Alaska), add an informative title for the plot, and include a caption that says who created the plot (you!). Make a conclusion about what you observe.
+
+
+```r
+states_map <- map_data("state")
+
+starbucks_with_2018_pop_est %>% 
+  ggplot() +
+  geom_map(map = states_map,
+    aes(map_id = state_name,
+    fill = starbucks_per_10000)) +
+  scale_fill_continuous(type = "viridis") +
+  expand_limits(x = states_map$long, y = states_map$lat) +
+  theme_map() +
+  labs(title = "Number of Starbucks Locations per 10,000 People",
+       subtitle = "2018 Estimated State Populations",
+       caption = "Josh Fortin",
+       fill = "")
+```
+
+![](04_exercises_real_files/figure-html/unnamed-chunk-4-1.png)<!-- -->
+
+> I observe that there seems to be more Starbucks per 10,000 in the West/West Coast than anywhere else in the country, which could be because other coffee shop brands such as Dunkin dominate in other regions like the Northeast.
 
 ### A few of your favorite things (`leaflet`)
 
@@ -276,6 +442,43 @@ starbucks_with_2018_pop_est <-
   * Connect all your locations together with a line in a meaningful way (you may need to order them differently in the original data).  
   
   * If there are other variables you want to add that could enhance your plot, do that now.  
+  
+
+
+```r
+fav_places <- tibble(
+  place = c("college house", "parent's house", "former home WI", "former home ND", "claire's house","pool", "many point campsite", "badlands np", "sammy's pizza", "hyland park"),
+  long = c(-93.1584418, -93.3372042, -89.7353063,-96.7910659, -93.3865606 , -93.3824467, -95.5227998, -102.9425508, -93.6614825, -93.3760094),
+  lat = c(44.9305493, 44.8725309, 43.297576, 46.8912343, 44.8546234, 44.8818559, 47.0756037, 43.6830221, 47.2261929, 44.8418856),
+  top_three = c(TRUE, TRUE, FALSE, FALSE, TRUE,FALSE, FALSE, FALSE, FALSE, FALSE)
+)
+```
+
+
+```r
+color_pal_factor <- colorFactor(c("darkgreen", "orange"), domain = fav_places$top_three)
+
+leaflet(fav_places) %>% 
+  addTiles() %>% 
+  addCircles(lng = ~long,
+             lat = ~lat,
+             label = ~place,
+             weight = 6,
+             opacity = 0.8,
+             color = ~color_pal_factor(top_three)) %>% 
+  addPolylines(lng = ~long,
+               lat = ~lat,
+               color = col2hex("grey")) %>% 
+  addLegend(color_pal_factor,
+            values = ~top_three,
+            opacity = 0.8,
+            title = "Top 3 Favorite Places",
+            position = "topleft")
+```
+
+<!--html_preserve--><div id="htmlwidget-b18a2984f19faaf72f14" style="width:672px;height:480px;" class="leaflet html-widget"></div>
+<script type="application/json" data-for="htmlwidget-b18a2984f19faaf72f14">{"x":{"options":{"crs":{"crsClass":"L.CRS.EPSG3857","code":null,"proj4def":null,"projectedBounds":null,"options":{}}},"calls":[{"method":"addTiles","args":["//{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",null,null,{"minZoom":0,"maxZoom":18,"tileSize":256,"subdomains":"abc","errorTileUrl":"","tms":false,"noWrap":false,"zoomOffset":0,"zoomReverse":false,"opacity":1,"zIndex":1,"detectRetina":false,"attribution":"&copy; <a href=\"http://openstreetmap.org\">OpenStreetMap<\/a> contributors, <a href=\"http://creativecommons.org/licenses/by-sa/2.0/\">CC-BY-SA<\/a>"}]},{"method":"addCircles","args":[[44.9305493,44.8725309,43.297576,46.8912343,44.8546234,44.8818559,47.0756037,43.6830221,47.2261929,44.8418856],[-93.1584418,-93.3372042,-89.7353063,-96.7910659,-93.3865606,-93.3824467,-95.5227998,-102.9425508,-93.6614825,-93.3760094],10,null,null,{"interactive":true,"className":"","stroke":true,"color":["#FFA500","#FFA500","#006400","#006400","#FFA500","#006400","#006400","#006400","#006400","#006400"],"weight":6,"opacity":0.8,"fill":true,"fillColor":["#FFA500","#FFA500","#006400","#006400","#FFA500","#006400","#006400","#006400","#006400","#006400"],"fillOpacity":0.2},null,null,["college house","parent's house","former home WI","former home ND","claire's house","pool","many point campsite","badlands np","sammy's pizza","hyland park"],{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null,null]},{"method":"addPolylines","args":[[[[{"lng":[-93.1584418,-93.3372042,-89.7353063,-96.7910659,-93.3865606,-93.3824467,-95.5227998,-102.9425508,-93.6614825,-93.3760094],"lat":[44.9305493,44.8725309,43.297576,46.8912343,44.8546234,44.8818559,47.0756037,43.6830221,47.2261929,44.8418856]}]]],null,null,{"interactive":true,"className":"","stroke":true,"color":"#BEBEBE","weight":5,"opacity":0.5,"fill":false,"fillColor":"#BEBEBE","fillOpacity":0.2,"smoothFactor":1,"noClip":false},null,null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addLegend","args":[{"colors":["#006400","#FFA500"],"labels":["FALSE","TRUE"],"na_color":null,"na_label":"NA","opacity":0.8,"position":"topleft","type":"factor","title":"Top 3 Favorite Places","extra":null,"layerId":null,"className":"info legend","group":null}]}],"limits":{"lat":[43.297576,47.2261929],"lng":[-102.9425508,-89.7353063]}},"evals":[],"jsHooks":[]}</script><!--/html_preserve-->
+
   
 ## Revisiting old datasets
 
@@ -315,6 +518,11 @@ Stations<-read_csv("http://www.macalester.edu/~dshuman1/data/112/DC-Stations.csv
   9. Use the latitude and longitude variables in `Stations` to make a visualization of the total number of departures from each station in the `Trips` data. Use either color or size to show the variation in number of departures. This time, plot the points on top of a map. Use any of the mapping tools you'd like.
   
 
+```r
+trips_join <- Trips %>% 
+  left_join(Stations,
+            by = c("sstation" = "name"))
+```
   
   10. Only 14.4% of the trips in our data are carried out by casual users. Create a plot that shows which area(s) have stations with a much higher percentage of departures by casual users. What patterns do you notice? Also plot this on top of a map. I think it will be more clear what the patterns are.
   
