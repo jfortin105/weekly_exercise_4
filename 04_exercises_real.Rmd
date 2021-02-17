@@ -1,6 +1,6 @@
 ---
 title: 'Weekly Exercises #4'
-author: "Put your name here"
+author: "Josh Fortin"
 output: 
   html_document:
     keep_md: TRUE
@@ -8,11 +8,12 @@ output:
     toc_float: TRUE
     df_print: paged
     code_download: true
+    code_folding: hide
 ---
 
 
 ```{r setup, include=FALSE}
-#knitr::opts_chunk$set(echo = TRUE, error=TRUE, message=FALSE, warning=FALSE)
+knitr::opts_chunk$set(echo = TRUE, error=TRUE, message=FALSE, warning=FALSE)
 ```
 
 ```{r libraries}
@@ -105,10 +106,11 @@ world_map <- get_stamenmap(
 ggmap(world_map) + 
   geom_point(data = Starbucks,
              aes(x = Longitude, y = Latitude, color = Starbucks$`Ownership Type`),
-             size = 0.1,
-             alpha = 0.3) +
+             size = 0.3,
+             alpha = 0.8) +
   theme_map() +
-  labs(color = "Owernship Type")
+  labs(title = "Worldwide Starbucks Locations",
+  color = "Owernship Type")
              
 ```
 
@@ -131,7 +133,9 @@ ggmap(TC_metro) +
              alpha = 0.3) +
   expand_limits(x = Starbucks_MN$Longitude, y = Starbucks_MN$Latitude) +
   annotate(geom = "point", x = -93.1717, y = 44.9371, label = "Macalester", size = 0.5, color = "red") +
-  theme_map()
+  theme_map() +
+  labs(title = "Twin Cities Metro Area Starbucks Locations",
+       subtitle = "Including Macalester College")
   
   
 ```
@@ -174,11 +178,18 @@ starbucks_with_2018_pop_est %>%
   geom_map(map = states_map,
     aes(map_id = state_name,
     fill = starbucks_per_10000)) +
+  geom_point(data = Starbucks %>% filter(Country == "US", `State/Province` != "AK", `State/Province` != "HI"),
+             aes(x = Longitude, y = Latitude),
+             size = 0.3,
+             color = "Maroon",
+             show.legend = TRUE) +
   scale_fill_continuous(type = "viridis") +
   expand_limits(x = states_map$long, y = states_map$lat) +
   theme_map() +
-  labs(title = "Number of Starbucks Locations per 10,000 People",
-       subtitle = "2018 Estimated State Populations",
+  theme(legend.background = element_blank(),
+        legend.position = "right") +
+  labs(title = "Number of Starbucks Locations per 10,000 People, 2018",
+       subtitle = "Each Point Represents a Starbucks Location",
        caption = "Josh Fortin",
        fill = "")
 ```
@@ -208,7 +219,7 @@ fav_places <- tibble(
 ```
 
 ```{r}
-color_pal_factor <- colorFactor(c("darkgreen", "orange"), domain = fav_places$top_three)
+color_pal_factor <- colorFactor(c("darkgreen", "coral"), domain = fav_places$top_three)
 
 leaflet(fav_places) %>% 
   addTiles() %>% 
@@ -268,7 +279,7 @@ dc_map <- get_stamenmap(bbox = c(left = -77.3341, bottom = 38.7455, right = -76.
 ggmap(dc_map) +
   geom_point(data = trips_join,
              aes(x = long, y = lat, color = trips_join$departure_count),
-             alpha = 0.7) +
+             alpha = 0.9) +
   scale_color_viridis_c() +
   labs(title = "Total Number of Departures from Each Bikeshare Station",
        subtitle = "Washington DC, 2014",
@@ -300,7 +311,11 @@ ggmap(dc_map) +
        subtitle = "Washington DC, 2014")
   
 ```
-  
+
+
+ > From this map, we can see patterns showing clusters of casual riders along the river in downtown, while the rest of the city and suburbs are primarily registered riders.
+ 
+ 
 ### COVID-19 data
 
 The following exercises will use the COVID-19 data from the NYT.
@@ -320,7 +335,7 @@ covid19 %>%
   expand_limits(x = states_map$long, y = states_map$lat) +
   theme_map() +
   theme(legend.background = element_blank(),
-        legend.position = "top") +
+        legend.position = "right") +
   scale_fill_viridis_c() +
   labs(title = "Raw COVID19 Case Count per State",
        subtitle = "Most Recent Cumulative Counts",
@@ -346,6 +361,7 @@ covid19 %>%
                fill = covid_per_10000)) +
   expand_limits(x = states_map$long, y = states_map$lat) +
   theme_map() +
+  theme(legend.position = "top") +
   scale_fill_continuous(type = "viridis") +
   labs(title = "Cumulative COVID19 Cases per 10,000 People",
        subtitle = "Based on 2018 State Population",
@@ -401,6 +417,8 @@ mpls_suspicious <- MplsStops %>%
   group_by(n) %>% 
   arrange(desc(n))
   
+
+mpls_suspicious
 ```
   
   
@@ -416,6 +434,7 @@ leaflet(data = MplsStops) %>%
              label = ~problem,
              weight = 1,
              opacity = 0.7,
+             stroke = FALSE,
              color = ~problem_palette(problem)) %>% 
   addLegend(problem_palette,
             values = ~problem,
@@ -443,7 +462,7 @@ mpls_all <- mpls_nbhd %>%
   17. Use `leaflet` to create a map from the `mpls_all` data  that colors the neighborhoods by `prop_suspicious`. Display the neighborhood name as you scroll over it. Describe what you observe in the map.
   
 ```{r}
-prop_sus_palette <- colorNumeric("viridis", domain = mpls_all$freq)
+prop_sus_palette <- colorNumeric("plasma", domain = mpls_all$freq)
 
 leaflet(mpls_all) %>% 
   addTiles() %>%
@@ -460,15 +479,52 @@ leaflet(mpls_all) %>%
             position = "bottomleft")
 ```
   
+  >in this map, I observe that most of the neighborhoods with a proportion of stops being suspicious are in North or Central Minneapolis, while South - especially the southeast areas - have lower proportions of suspicious stops.
+  
   
   18. Use `leaflet` to create a map of your own choosing. Come up with a question you want to try to answer and use the map to help answer that question. Describe what your map shows. 
   
+```{r}
+#Question: Is there a spatial relationship between estimated median household income and Starbucks locations in Minnesota?
+
+Mpls_starbucks <-Starbucks_MN %>% 
+  filter(City == "Minneapolis")
+
+nbhdDemo <- mpls_nbhd %>% 
+  inner_join(MplsDemo,
+            by = c("BDNAME" = "neighborhood"))
+
+pal_hhIncome <- colorNumeric("inferno", domain = nbhdDemo$hhIncome)
+
+leaflet(nbhdDemo) %>% 
+  addTiles() %>% 
+  addPolygons(
+    fillColor = ~pal_hhIncome(hhIncome),
+    fillOpacity = 1,
+    weight = 0.7,
+    color = "Black",
+    label = ~BDNAME) %>% 
+  addCircles(data = Mpls_starbucks,
+             lng = ~Longitude,
+             lat = ~Latitude,
+             opacity = 1,
+             radius = 2,
+             weight = 2,
+             color = "green") %>% 
+  addLegend(pal_hhIncome,
+            values = ~hhIncome,
+            opacity = 1,
+            title = "Etimated Median Household Income 2015",
+            position = "bottomleft")
+
+```
   
-  
+>This map shows estimated Median Household Income in Minneapolis neighborhoods with points of locations of starbucks in Minneapolis. From the map, we can see that most of the starbucks are located in commercial areas such as downtown, except for for the one store 
   
 ## GitHub link
 
   19. Below, provide a link to your GitHub page with this set of Weekly Exercises. Specifically, if the name of the file is 04_exercises.Rmd, provide a link to the 04_exercises.md file, which is the one that will be most readable on GitHub.
 
+[weekly exercise 4 md](https://github.com/jfortin105/weekly_exercise_4/blob/main/04_exercises_real.md)
 
 **DID YOU REMEMBER TO UNCOMMENT THE OPTIONS AT THE TOP?**
